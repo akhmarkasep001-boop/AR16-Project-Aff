@@ -10,6 +10,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,21 +22,13 @@ jobs:
           java-version: '17'
 
       - name: Extract Android project
-        shell: bash
         run: |
-          mkdir -p project
-          unzip -o AR16_OS_Android_Source_With_Cloud_Build.zip -d project
-          SETTINGS_DIR="$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) -printf '%h\n' | head -n 1)"
-          if [ -z "$SETTINGS_DIR" ]; then
-            echo "ERROR: settings.gradle tidak ditemukan dalam ZIP"
-            find project -maxdepth 5 -type f | head -n 80
-            exit 1
-          fi
-          echo "PROJECT_DIR=$SETTINGS_DIR" >> "$GITHUB_ENV"
+          mkdir project
+          unzip AR16_OS_Android_Source_With_Cloud_Build.zip -d project
+          find project -name settings.gradle -o -name settings.gradle.kts
 
-      - name: Accept Android SDK licenses
-        shell: bash
-        run: yes | sdkmanager --licenses || true
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Install Android SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
@@ -46,7 +39,9 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build APK
-        run: gradle -p "$PROJECT_DIR" :app:assembleDebug
+        run: |
+          cd project
+          gradle :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
