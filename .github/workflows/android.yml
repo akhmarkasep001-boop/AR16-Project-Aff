@@ -25,13 +25,12 @@ jobs:
         run: |
           mkdir project
           unzip AR16_OS_Android_Source_With_Cloud_Build.zip -d project
-          find project -name settings.gradle -o -name settings.gradle.kts
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+          find project -type f \( -name settings.gradle -o -name settings.gradle.kts \)
 
       - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -40,7 +39,12 @@ jobs:
 
       - name: Build APK
         run: |
-          cd project
+          SETTINGS_DIR="$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) -printf '%h\n' | head -n 1)"
+          if [ -z "$SETTINGS_DIR" ]; then
+            echo "File settings.gradle tidak ditemukan"
+            exit 1
+          fi
+          cd "$SETTINGS_DIR"
           gradle :app:assembleDebug
 
       - name: Upload APK
